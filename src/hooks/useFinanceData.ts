@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Transaction, Debt } from '../types';
+import type { Transaction, Debt } from '../types';
 
 const STORAGE_KEYS = {
     TRANSACTIONS: 'billetera_transactions',

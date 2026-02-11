@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useFinance } from '../context/FinanceContext';
-import { Plus, X, Wallet, DollarSign, Calendar } from 'lucide-react';
+import { Plus, X, Wallet, DollarSign } from 'lucide-react';
 
 export const Income: React.FC = () => {
     const { transactions, addTransaction } = useFinance();
@@ -166,8 +166,8 @@ export const Income: React.FC = () => {
                                             key={cat}
                                             onClick={() => setCategory(cat)}
                                             className={`py-2 px-4 rounded-lg text-sm font-medium transition-colors ${category === cat
-                                                    ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
-                                                    : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
+                                                ? 'bg-blue-600 text-white shadow-md shadow-blue-500/20'
+                                                : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-gray-700'
                                                 }`}
                                         >
                                             {cat}

@@ -32,7 +32,7 @@ export const Debts: React.FC = () => {
         setIsModalOpen(false);
     };
 
-    const handlePayment = (id: string, currentPaid: number, total: number) => {
+    const handlePayment = (id: string, total: number) => {
         // Simulating a partial payment or full payment logic could go here
         // For now let's just mark as fully paid for simplicity or add 10%
         // Let's implement full payment for now as a "Mark as Paid" feature or partial
@@ -131,7 +131,7 @@ export const Debts: React.FC = () => {
                                 </button>
                                 {debt.paidAmount < debt.totalAmount && (
                                     <button
-                                        onClick={() => handlePayment(debt.id, debt.paidAmount, debt.totalAmount)}
+                                        onClick={() => handlePayment(debt.id, debt.totalAmount)}
                                         className="px-3 py-1.5 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-lg text-sm font-medium hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors"
                                     >
                                         Marcar Pagado
