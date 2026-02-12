@@ -1,1 +1,14 @@
 @import "tailwindcss";
+
+body {
+    padding-bottom: env(safe-area-inset-bottom);
+    background-color: #f9fafb;
+    /* Light mode default */
+}
+
+@media (prefers-color-scheme: dark) {
+    body {
+        background-color: #030712;
+        /* Dark mode default */
+    }
+}
