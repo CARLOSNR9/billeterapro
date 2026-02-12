@@ -18,7 +18,7 @@ export const Dashboard: React.FC = () => {
     };
 
     return (
-        <div className="p-4 space-y-6 pb-24">
+        <div className="p-4 pt-[calc(1rem+env(safe-area-inset-top))] space-y-6 pb-24">
             <header className="flex justify-between items-center mb-6">
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
                     BilleteraPro

@@ -30,14 +30,14 @@ export const Layout: React.FC = () => {
     return (
         <div className="flex flex-col h-screen bg-gray-50 dark:bg-gray-900 text-gray-900 dark:text-gray-100">
             {/* Main Content Area */}
-            <main className="flex-1 overflow-y-auto pb-20">
+            <main className="flex-1 overflow-y-auto pb-[calc(5rem+env(safe-area-inset-bottom))]">
                 <div className="max-w-md mx-auto min-h-full bg-white dark:bg-gray-950 shadow-sm relative">
                     <Outlet />
                 </div>
             </main>
 
             {/* Bottom Navigation */}
-            <nav className="fixed bottom-0 left-0 right-0 h-16 bg-white dark:bg-gray-950 border-t border-gray-200 dark:border-gray-800 z-50 safe-area-bottom">
+            <nav className="fixed bottom-0 left-0 right-0 h-16 bg-white dark:bg-gray-950 border-t border-gray-200 dark:border-gray-800 z-50 pb-[env(safe-area-inset-bottom)]">
                 <div className="max-w-md mx-auto h-full flex items-center justify-around px-2">
                     <NavItem to="/" icon={LayoutDashboard} label="Inicio" />
                     <NavItem to="/income" icon={Wallet} label="Ingresos" />

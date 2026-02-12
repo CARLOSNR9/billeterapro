@@ -57,7 +57,7 @@ export const Expenses: React.FC = () => {
     };
 
     return (
-        <div className="p-4 pb-24 min-h-screen bg-gray-50 dark:bg-gray-950">
+        <div className="p-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-24 min-h-screen bg-gray-50 dark:bg-gray-950">
             <header className="flex justify-between items-center mb-6">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Gastos</h1>
