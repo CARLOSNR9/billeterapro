@@ -47,6 +47,10 @@ export const useFinanceData = () => {
         setDebts(prev => prev.filter(d => d.id !== id));
     };
 
+    const updateTransaction = (id: string, updates: Partial<Transaction>) => {
+        setTransactions(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+    };
+
     const getBalance = () => {
         const income = transactions
             .filter(t => t.type === 'income')
@@ -65,6 +69,7 @@ export const useFinanceData = () => {
         addDebt,
         updateDebt,
         deleteDebt,
+        updateTransaction,
         getBalance
     };
 };

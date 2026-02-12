@@ -10,6 +10,7 @@ interface FinanceContextType {
     addDebt: (debt: Omit<Debt, 'id'>) => void;
     updateDebt: (id: string, updates: Partial<Debt>) => void;
     deleteDebt: (id: string) => void;
+    updateTransaction: (id: string, updates: Partial<Transaction>) => void;
     getBalance: () => number;
 }
 

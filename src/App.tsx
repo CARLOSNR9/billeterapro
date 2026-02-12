@@ -4,10 +4,9 @@ import { Layout } from './components/Layout';
 import { Dashboard } from './pages/Dashboard';
 import { FinanceProvider } from './context/FinanceContext';
 
-// Placeholders for other pages
-const Income = () => <div className="p-4"><h1 className="text-xl font-bold">Ingresos</h1></div>;
-const Expenses = () => <div className="p-4"><h1 className="text-xl font-bold">Gastos</h1></div>;
-const Debts = () => <div className="p-4"><h1 className="text-xl font-bold">Deudas</h1></div>;
+import { Income } from './pages/Income';
+import { Expenses } from './pages/Expenses';
+import { Debts } from './pages/Debts';
 
 function App() {
   return (

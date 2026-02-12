@@ -6,6 +6,11 @@ export const Debts: React.FC = () => {
     const { debts, addDebt, deleteDebt, updateDebt } = useFinance();
     const [isModalOpen, setIsModalOpen] = useState(false);
 
+    // Payment Modal State
+    const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+    const [selectedDebtId, setSelectedDebtId] = useState<string | null>(null);
+    const [paymentAmount, setPaymentAmount] = useState('');
+
     // Form State
     const [totalAmount, setTotalAmount] = useState('');
     const [description, setDescription] = useState('');
@@ -32,13 +37,42 @@ export const Debts: React.FC = () => {
         setIsModalOpen(false);
     };
 
-    const handlePayment = (id: string, total: number) => {
-        // Simulating a partial payment or full payment logic could go here
-        // For now let's just mark as fully paid for simplicity or add 10%
-        // Let's implement full payment for now as a "Mark as Paid" feature or partial
+    const openPaymentModal = (id: string) => {
+        const debt = debts.find(d => d.id === id);
+        if (debt) {
+            setSelectedDebtId(id);
+            setPaymentAmount(''); // Let user enter amount, or maybe suggesting full amount?
+            // Optional: suggest remaining amount
+            // setPaymentAmount((debt.totalAmount - debt.paidAmount).toString());
+            setIsPaymentModalOpen(true);
+        }
+    };
 
-        // Let's just fill it up for now
-        updateDebt(id, { paidAmount: total });
+    const handlePaymentSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        if (!selectedDebtId || !paymentAmount) return;
+
+        const debt = debts.find(d => d.id === selectedDebtId);
+        if (!debt) return;
+
+        const amountToAdd = Number(paymentAmount);
+        const currentPaid = debt.paidAmount;
+        const remaining = debt.totalAmount - currentPaid;
+
+        if (amountToAdd <= 0) return;
+
+        // Ensure we don't overpay
+        // If amount adding is > remaining, enable capping or show error
+        // For better UX, let's just cap it to the remaining amount if they entered too much, 
+        // or strictly validated. Let's cap it for safety.
+        const finalAmountToAdd = Math.min(amountToAdd, remaining);
+
+        updateDebt(selectedDebtId, { paidAmount: currentPaid + finalAmountToAdd });
+
+        // Reset and close
+        setIsPaymentModalOpen(false);
+        setPaymentAmount('');
+        setSelectedDebtId(null);
     };
 
     const formatCurrency = (amount: number) => {
@@ -131,10 +165,10 @@ export const Debts: React.FC = () => {
                                 </button>
                                 {debt.paidAmount < debt.totalAmount && (
                                     <button
-                                        onClick={() => handlePayment(debt.id, debt.totalAmount)}
+                                        onClick={() => openPaymentModal(debt.id)}
                                         className="px-3 py-1.5 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-lg text-sm font-medium hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors"
                                     >
-                                        Marcar Pagado
+                                        Abonar
                                     </button>
                                 )}
                             </div>
@@ -221,6 +255,57 @@ export const Debts: React.FC = () => {
                                 className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-purple-500/30 transition-all active:scale-95 mt-4"
                             >
                                 Guardar Deuda
+                            </button>
+                        </form>
+                    </div>
+                </div>
+            )}
+
+            {/* Payment Modal */}
+            {isPaymentModalOpen && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center">
+                    <div className="bg-white dark:bg-gray-900 w-full max-w-md rounded-t-3xl sm:rounded-2xl p-6 animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-10 duration-300">
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Registrar Abono</h2>
+                            <button
+                                onClick={() => setIsPaymentModalOpen(false)}
+                                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+                            >
+                                <X size={24} className="text-gray-500" />
+                            </button>
+                        </div>
+
+                        <form onSubmit={handlePaymentSubmit} className="space-y-4">
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                    Monto a Abonar
+                                </label>
+                                <div className="relative">
+                                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span className="text-gray-500 dark:text-gray-400">$</span>
+                                    </div>
+                                    <input
+                                        type="number"
+                                        required
+                                        min="1"
+                                        value={paymentAmount}
+                                        onChange={(e) => setPaymentAmount(e.target.value)}
+                                        className="block w-full pl-7 pr-3 py-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-green-500 focus:border-transparent outline-none transition-all"
+                                        placeholder="0.00"
+                                    />
+                                </div>
+                                {selectedDebtId && debts.find(d => d.id === selectedDebtId) && (
+                                    <p className="text-xs text-gray-500 mt-2">
+                                        Restante: {formatCurrency(debts.find(d => d.id === selectedDebtId)!.totalAmount - debts.find(d => d.id === selectedDebtId)!.paidAmount)}
+                                    </p>
+                                )}
+                            </div>
+
+                            <button
+                                type="submit"
+                                className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-green-500/30 transition-all active:scale-95 mt-4"
+                            >
+                                Confirmar Pago
                             </button>
                         </form>
                     </div>
