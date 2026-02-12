@@ -1,54 +1,141 @@
 import { useState, useEffect } from 'react';
+import { supabase } from '../supabaseClient';
 import type { Transaction, Debt } from '../types';
 
-const STORAGE_KEYS = {
-    TRANSACTIONS: 'billetera_transactions',
-    DEBTS: 'billetera_debts'
-};
-
 export const useFinanceData = () => {
-    const [transactions, setTransactions] = useState<Transaction[]>(() => {
-        const saved = localStorage.getItem(STORAGE_KEYS.TRANSACTIONS);
-        return saved ? JSON.parse(saved) : [];
-    });
+    const [transactions, setTransactions] = useState<Transaction[]>([]);
+    const [debts, setDebts] = useState<Debt[]>([]);
+    const [loading, setLoading] = useState(true);
 
-    const [debts, setDebts] = useState<Debt[]>(() => {
-        const saved = localStorage.getItem(STORAGE_KEYS.DEBTS);
-        return saved ? JSON.parse(saved) : [];
-    });
+    const fetchData = async () => {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            const { data: transactionsData, error: transactionsError } = await supabase
+                .from('transactions')
+                .select('*')
+                .order('date', { ascending: false });
+
+            if (transactionsError) throw transactionsError;
+
+            const { data: debtsData, error: debtsError } = await supabase
+                .from('debts')
+                .select('*')
+                .order('created_at', { ascending: false });
+
+            if (debtsError) throw debtsError;
+
+            // Map and format if necessary (e.g. date strings are fine directly usually)
+            setTransactions(transactionsData as Transaction[]);
+            setDebts(debtsData as Debt[]);
+        } catch (error) {
+            console.error('Error fetching data:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     useEffect(() => {
-        localStorage.setItem(STORAGE_KEYS.TRANSACTIONS, JSON.stringify(transactions));
-    }, [transactions]);
+        fetchData();
 
-    useEffect(() => {
-        localStorage.setItem(STORAGE_KEYS.DEBTS, JSON.stringify(debts));
-    }, [debts]);
+        // Optional: Realtime subscription could be added here
+    }, []);
 
-    const addTransaction = (transaction: Omit<Transaction, 'id'>) => {
-        const newTransaction = { ...transaction, id: crypto.randomUUID() };
-        setTransactions(prev => [newTransaction, ...prev]);
+    const addTransaction = async (transaction: Omit<Transaction, 'id'>) => {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            const { data, error } = await supabase
+                .from('transactions')
+                .insert([{ ...transaction, user_id: user.id }])
+                .select()
+                .single();
+
+            if (error) throw error;
+            setTransactions(prev => [data as Transaction, ...prev]);
+        } catch (error) {
+            console.error('Error adding transaction:', error);
+        }
     };
 
-    const deleteTransaction = (id: string) => {
-        setTransactions(prev => prev.filter(t => t.id !== id));
+    const deleteTransaction = async (id: string) => {
+        try {
+            const { error } = await supabase
+                .from('transactions')
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+            setTransactions(prev => prev.filter(t => t.id !== id));
+        } catch (error) {
+            console.error('Error deleting transaction:', error);
+        }
     };
 
-    const addDebt = (debt: Omit<Debt, 'id'>) => {
-        const newDebt = { ...debt, id: crypto.randomUUID() };
-        setDebts(prev => [newDebt, ...prev]);
+    const updateTransaction = async (id: string, updates: Partial<Transaction>) => {
+        try {
+            const { data, error } = await supabase
+                .from('transactions')
+                .update(updates)
+                .eq('id', id)
+                .select()
+                .single();
+
+            if (error) throw error;
+            setTransactions(prev => prev.map(t => t.id === id ? (data as Transaction) : t));
+        } catch (error) {
+            console.error('Error updating transaction:', error);
+        }
     };
 
-    const updateDebt = (id: string, updates: Partial<Debt>) => {
-        setDebts(prev => prev.map(d => d.id === id ? { ...d, ...updates } : d));
+    const addDebt = async (debt: Omit<Debt, 'id'>) => {
+        try {
+            const { data: { user } } = await supabase.auth.getUser();
+            if (!user) return;
+
+            const { data, error } = await supabase
+                .from('debts')
+                .insert([{ ...debt, user_id: user.id }])
+                .select()
+                .single();
+
+            if (error) throw error;
+            setDebts(prev => [data as Debt, ...prev]);
+        } catch (error) {
+            console.error('Error adding debt:', error);
+        }
     };
 
-    const deleteDebt = (id: string) => {
-        setDebts(prev => prev.filter(d => d.id !== id));
+    const updateDebt = async (id: string, updates: Partial<Debt>) => {
+        try {
+            const { data, error } = await supabase
+                .from('debts')
+                .update(updates)
+                .eq('id', id)
+                .select()
+                .single();
+
+            if (error) throw error;
+            setDebts(prev => prev.map(d => d.id === id ? (data as Debt) : d));
+        } catch (error) {
+            console.error('Error updating debt:', error);
+        }
     };
 
-    const updateTransaction = (id: string, updates: Partial<Transaction>) => {
-        setTransactions(prev => prev.map(t => t.id === id ? { ...t, ...updates } : t));
+    const deleteDebt = async (id: string) => {
+        try {
+            const { error } = await supabase
+                .from('debts')
+                .delete()
+                .eq('id', id);
+
+            if (error) throw error;
+            setDebts(prev => prev.filter(d => d.id !== id));
+        } catch (error) {
+            console.error('Error deleting debt:', error);
+        }
     };
 
     const getBalance = () => {
@@ -64,12 +151,14 @@ export const useFinanceData = () => {
     return {
         transactions,
         debts,
+        loading,
         addTransaction,
         deleteTransaction,
+        updateTransaction,
         addDebt,
         updateDebt,
         deleteDebt,
-        updateTransaction,
         getBalance
     };
 };
+

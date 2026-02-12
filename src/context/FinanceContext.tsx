@@ -5,6 +5,7 @@ import type { Transaction, Debt } from '../types';
 interface FinanceContextType {
     transactions: Transaction[];
     debts: Debt[];
+    loading: boolean;
     addTransaction: (transaction: Omit<Transaction, 'id'>) => void;
     deleteTransaction: (id: string) => void;
     addDebt: (debt: Omit<Debt, 'id'>) => void;
