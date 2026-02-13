@@ -23,8 +23,53 @@ export const Dashboard: React.FC = () => {
                 <h1 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-cyan-500 bg-clip-text text-transparent">
                     BilleteraPro
                 </h1>
-                <div className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-300 font-bold">
-                    JP
+                import {useNavigate} from 'react-router-dom';
+                import {supabase} from '../supabaseClient';
+                import {LogOut, User as UserIcon} from 'lucide-react'; // Renamed User to UserIcon to avoid conflict if we imported User type
+
+                // ... inside component ...
+                const {getBalance, debts, transactions, user} = useFinance(); // Destructure user
+                const navigate = useNavigate();
+                const [showMenu, setShowMenu] = useState(false);
+
+    const handleLogout = async () => {
+                    await supabase.auth.signOut();
+                navigate('/login');
+    };
+
+                const userInitials = user?.email?.substring(0, 2).toUpperCase() || 'US';
+
+                // ... inside return ...
+                <div className="relative">
+                    <button
+                        onClick={() => setShowMenu(!showMenu)}
+                        className="w-8 h-8 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center text-blue-600 dark:text-blue-300 font-bold focus:outline-none ring-offset-2 focus:ring-2 ring-blue-500"
+                    >
+                        {userInitials}
+                    </button>
+
+                    {showMenu && (
+                        <>
+                            <div
+                                className="fixed inset-0 z-10"
+                                onClick={() => setShowMenu(false)}
+                            ></div>
+                            <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-xl shadow-lg py-1 z-20 border border-gray-100 dark:border-gray-700 animate-in fade-in slide-in-from-top-2">
+                                <div className="px-4 py-2 border-b border-gray-100 dark:border-gray-700">
+                                    <p className="text-xs text-gray-500 dark:text-gray-400 truncate">
+                                        {user?.email}
+                                    </p>
+                                </div>
+                                <button
+                                    onClick={handleLogout}
+                                    className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 transition-colors"
+                                >
+                                    <LogOut size={16} />
+                                    Cerrar Sesión
+                                </button>
+                            </div>
+                        </>
+                    )}
                 </div>
             </header>
 

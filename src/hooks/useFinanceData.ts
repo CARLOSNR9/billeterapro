@@ -1,15 +1,18 @@
 import { useState, useEffect } from 'react';
+import type { User } from '@supabase/supabase-js';
 import { supabase } from '../supabaseClient';
 import type { Transaction, Debt } from '../types';
 
 export const useFinanceData = () => {
     const [transactions, setTransactions] = useState<Transaction[]>([]);
     const [debts, setDebts] = useState<Debt[]>([]);
+    const [user, setUser] = useState<User | null>(null);
     const [loading, setLoading] = useState(true);
 
     const fetchData = async () => {
         try {
             const { data: { user } } = await supabase.auth.getUser();
+            setUser(user);
             if (!user) return;
 
             const { data: transactionsData, error: transactionsError } = await supabase
@@ -55,6 +58,7 @@ export const useFinanceData = () => {
             } else if (event === 'SIGNED_OUT') {
                 setTransactions([]);
                 setDebts([]);
+                setUser(null);
             }
         });
 
@@ -204,6 +208,7 @@ export const useFinanceData = () => {
     return {
         transactions,
         debts,
+        user,
         loading,
         addTransaction,
         deleteTransaction,

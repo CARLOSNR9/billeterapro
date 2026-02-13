@@ -1,10 +1,12 @@
 import React, { createContext, useContext, type ReactNode } from 'react';
+import type { User } from '@supabase/supabase-js';
 import { useFinanceData } from '../hooks/useFinanceData';
 import type { Transaction, Debt } from '../types';
 
 interface FinanceContextType {
     transactions: Transaction[];
     debts: Debt[];
+    user: User | null;
     loading: boolean;
     addTransaction: (transaction: Omit<Transaction, 'id'>) => void;
     deleteTransaction: (id: string) => void;
