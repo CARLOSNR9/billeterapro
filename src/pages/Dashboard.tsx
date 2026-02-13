@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useFinance } from '../context/FinanceContext';
-import { TrendingUp, TrendingDown, DollarSign, LogOut, User as UserIcon } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, LogOut } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 
