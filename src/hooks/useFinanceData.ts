@@ -49,7 +49,16 @@ export const useFinanceData = () => {
     useEffect(() => {
         fetchData();
 
-        // Optional: Realtime subscription could be added here
+        const { data: { subscription } } = supabase.auth.onAuthStateChange((event) => {
+            if (event === 'SIGNED_IN') {
+                fetchData();
+            } else if (event === 'SIGNED_OUT') {
+                setTransactions([]);
+                setDebts([]);
+            }
+        });
+
+        return () => subscription.unsubscribe();
     }, []);
 
     const addTransaction = async (transaction: Omit<Transaction, 'id'>) => {
