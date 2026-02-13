@@ -37,8 +37,8 @@ export const Layout: React.FC = () => {
             </main>
 
             {/* Bottom Navigation */}
-            <nav className="fixed bottom-0 left-0 right-0 h-16 bg-white dark:bg-gray-950 border-t border-gray-200 dark:border-gray-800 z-50 pb-[env(safe-area-inset-bottom)]">
-                <div className="max-w-md mx-auto h-full flex items-center justify-around px-2">
+            <nav className="fixed bottom-0 left-0 right-0 bg-white dark:bg-gray-950 border-t border-gray-200 dark:border-gray-800 z-50 pb-[env(safe-area-inset-bottom)]">
+                <div className="max-w-md mx-auto h-16 flex items-center justify-around px-2">
                     <NavItem to="/" icon={LayoutDashboard} label="Inicio" />
                     <NavItem to="/income" icon={Wallet} label="Ingresos" />
                     <NavItem to="/expenses" icon={TrendingDown} label="Gastos" />
