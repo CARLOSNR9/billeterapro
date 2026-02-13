@@ -27,8 +27,18 @@ export const useFinanceData = () => {
             if (debtsError) throw debtsError;
 
             // Map and format if necessary (e.g. date strings are fine directly usually)
+            // Map and format if necessary (e.g. date strings are fine directly usually)
             setTransactions(transactionsData as Transaction[]);
-            setDebts(debtsData as Debt[]);
+
+            const formattedDebts: Debt[] = (debtsData || []).map((d: any) => ({
+                id: d.id,
+                description: d.description,
+                totalAmount: d.total_amount,
+                paidAmount: d.paid_amount,
+                dueDate: d.due_date,
+                creditor: d.creditor
+            }));
+            setDebts(formattedDebts);
         } catch (error) {
             console.error('Error fetching data:', error);
         } finally {
@@ -95,14 +105,32 @@ export const useFinanceData = () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) return;
 
+            const debtPayload = {
+                user_id: user.id,
+                description: debt.description,
+                total_amount: debt.totalAmount,
+                paid_amount: debt.paidAmount,
+                due_date: debt.dueDate,
+                creditor: debt.creditor
+            };
+
             const { data, error } = await supabase
                 .from('debts')
-                .insert([{ ...debt, user_id: user.id }])
+                .insert([debtPayload])
                 .select()
                 .single();
 
             if (error) throw error;
-            setDebts(prev => [data as Debt, ...prev]);
+
+            const newDebt: Debt = {
+                id: data.id,
+                description: data.description,
+                totalAmount: data.total_amount,
+                paidAmount: data.paid_amount,
+                dueDate: data.due_date,
+                creditor: data.creditor
+            };
+            setDebts(prev => [newDebt as Debt, ...prev]);
         } catch (error) {
             console.error('Error adding debt:', error);
         }
@@ -110,15 +138,31 @@ export const useFinanceData = () => {
 
     const updateDebt = async (id: string, updates: Partial<Debt>) => {
         try {
+            const updatesPayload: any = {};
+            if (updates.description !== undefined) updatesPayload.description = updates.description;
+            if (updates.totalAmount !== undefined) updatesPayload.total_amount = updates.totalAmount;
+            if (updates.paidAmount !== undefined) updatesPayload.paid_amount = updates.paidAmount;
+            if (updates.dueDate !== undefined) updatesPayload.due_date = updates.dueDate;
+            if (updates.creditor !== undefined) updatesPayload.creditor = updates.creditor;
+
             const { data, error } = await supabase
                 .from('debts')
-                .update(updates)
+                .update(updatesPayload)
                 .eq('id', id)
                 .select()
                 .single();
 
             if (error) throw error;
-            setDebts(prev => prev.map(d => d.id === id ? (data as Debt) : d));
+
+            const updatedDebt: Debt = {
+                id: data.id,
+                description: data.description,
+                totalAmount: data.total_amount,
+                paidAmount: data.paid_amount,
+                dueDate: data.due_date,
+                creditor: data.creditor
+            };
+            setDebts(prev => prev.map(d => d.id === id ? (updatedDebt as Debt) : d));
         } catch (error) {
             console.error('Error updating debt:', error);
         }
