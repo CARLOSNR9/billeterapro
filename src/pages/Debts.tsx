@@ -411,5 +411,6 @@ export const Debts: React.FC = () => {
                 </div>
             )}
 
-            );
+        </div>
+    );
 };
