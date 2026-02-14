@@ -13,13 +13,18 @@ export const Income: React.FC = () => {
     const incomeTransactions = transactions.filter(t => t.type === 'income');
     const categories = ['Salario', 'Freelance', 'Regalo', 'Otros'];
 
-    const handleCreate = (data: { amount: number; description: string; category: string }) => {
-        addTransaction({
-            ...data,
-            date: new Date().toISOString(),
-            type: 'income'
-        });
-        setIsModalOpen(false);
+    const handleCreate = async (data: { amount: number; description: string; category: string }) => {
+        try {
+            await addTransaction({
+                ...data,
+                date: new Date().toISOString(),
+                type: 'income'
+            });
+            setIsModalOpen(false);
+        } catch (error) {
+            console.error('Error creating income:', error);
+            alert('Error al registrar el ingreso. Por favor intente de nuevo.');
+        }
     };
 
     const handleUpdate = (data: { amount: number; description: string; category: string }) => {

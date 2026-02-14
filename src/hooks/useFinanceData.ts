@@ -68,7 +68,7 @@ export const useFinanceData = () => {
     const addTransaction = async (transaction: Omit<Transaction, 'id'>) => {
         try {
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
+            if (!user) throw new Error('Usuario no autenticado');
 
             const { data, error } = await supabase
                 .from('transactions')
@@ -78,8 +78,10 @@ export const useFinanceData = () => {
 
             if (error) throw error;
             setTransactions(prev => [data as Transaction, ...prev]);
+            return data as Transaction;
         } catch (error) {
             console.error('Error adding transaction:', error);
+            throw error;
         }
     };
 

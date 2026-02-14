@@ -13,13 +13,18 @@ export const Expenses: React.FC = () => {
     const expenseTransactions = transactions.filter(t => t.type === 'expense');
     const categories = ['Alimentación', 'Transporte', 'Servicios', 'Ocio', 'Salud', 'Otros'];
 
-    const handleCreate = (data: { amount: number; description: string; category: string }) => {
-        addTransaction({
-            ...data,
-            date: new Date().toISOString(),
-            type: 'expense'
-        });
-        setIsModalOpen(false);
+    const handleCreate = async (data: { amount: number; description: string; category: string }) => {
+        try {
+            await addTransaction({
+                ...data,
+                date: new Date().toISOString(),
+                type: 'expense'
+            });
+            setIsModalOpen(false);
+        } catch (error) {
+            console.error('Error creating expense:', error);
+            alert('Error al registrar el gasto. Por favor intente de nuevo.');
+        }
     };
 
     const handleUpdate = (data: { amount: number; description: string; category: string }) => {
