@@ -1,10 +1,14 @@
 import React, { useState } from 'react';
 import { useFinance } from '../context/FinanceContext';
-import { Plus, X, CreditCard, Trash2, CheckCircle2 } from 'lucide-react';
+import { Plus, X, CreditCard, Trash2, CheckCircle2, Pencil } from 'lucide-react';
+import type { Debt } from '../types';
 
 export const Debts: React.FC = () => {
     const { debts, addDebt, deleteDebt, updateDebt, addTransaction, transactions } = useFinance();
     const [isModalOpen, setIsModalOpen] = useState(false);
+
+    // Edit State
+    const [editingDebtId, setEditingDebtId] = useState<string | null>(null);
 
     // Payment Modal State
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
@@ -31,18 +35,34 @@ export const Debts: React.FC = () => {
         if (!totalAmount || !description) return;
 
         try {
-            await addDebt({
-                totalAmount: Number(totalAmount),
-                paidAmount: 0,
-                description,
-                creditor: creditor || 'Banco',
-                dueDate: dueDate || undefined,
-                interestRate: interestRate ? Number(interestRate) : undefined,
-                startDate: startDate,
-                isInterestOnly: isInterestOnly
-            });
+            if (editingDebtId) {
+                // Update existing debt
+                await updateDebt(editingDebtId, {
+                    totalAmount: Number(totalAmount),
+                    description,
+                    creditor: creditor || 'Banco',
+                    dueDate: dueDate || undefined,
+                    interestRate: interestRate ? Number(interestRate) : undefined,
+                    startDate: startDate,
+                    isInterestOnly: isInterestOnly
+                });
+                alert('Deuda actualizada correctamente.');
+            } else {
+                // Create new debt
+                await addDebt({
+                    totalAmount: Number(totalAmount),
+                    paidAmount: 0,
+                    description,
+                    creditor: creditor || 'Banco',
+                    dueDate: dueDate || undefined,
+                    interestRate: interestRate ? Number(interestRate) : undefined,
+                    startDate: startDate,
+                    isInterestOnly: isInterestOnly
+                });
+            }
 
             // Reset form
+            setEditingDebtId(null);
             setTotalAmount('');
             setDescription('');
             setCreditor('');
@@ -52,9 +72,21 @@ export const Debts: React.FC = () => {
             setIsInterestOnly(false);
             setIsModalOpen(false);
         } catch (error: any) {
-            console.error('Error creating debt:', error);
-            alert(`Error al registrar la deuda: ${error.message || 'Error desconocido'}`);
+            console.error('Error saving debt:', error);
+            alert(`Error al guardar la deuda: ${error.message || 'Error desconocido'}`);
         }
+    };
+
+    const handleEdit = (debt: Debt) => {
+        setEditingDebtId(debt.id);
+        setTotalAmount(debt.totalAmount.toString());
+        setDescription(debt.description);
+        setCreditor(debt.creditor || '');
+        setDueDate(debt.dueDate || '');
+        setInterestRate(debt.interestRate ? debt.interestRate.toString() : '');
+        setStartDate(debt.startDate || new Date().toISOString().split('T')[0]);
+        setIsInterestOnly(debt.isInterestOnly || false);
+        setIsModalOpen(true);
     };
 
     const openPaymentModal = (id: string) => {
@@ -186,7 +218,17 @@ export const Debts: React.FC = () => {
                     <p className="text-sm text-gray-500 dark:text-gray-400">Administra tus obligaciones</p>
                 </div>
                 <button
-                    onClick={() => setIsModalOpen(true)}
+                    onClick={() => {
+                        setEditingDebtId(null);
+                        setTotalAmount('');
+                        setDescription('');
+                        setCreditor('');
+                        setDueDate('');
+                        setInterestRate('');
+                        setStartDate(new Date().toISOString().split('T')[0]);
+                        setIsInterestOnly(false);
+                        setIsModalOpen(true);
+                    }}
                     className="w-10 h-10 rounded-full bg-purple-600 text-white flex items-center justify-center shadow-lg shadow-purple-500/30 hover:bg-purple-700 transition-colors"
                 >
                     <Plus size={24} />
@@ -271,6 +313,12 @@ export const Debts: React.FC = () => {
                                         <Trash2 size={18} />
                                     </button>
                                     <button
+                                        onClick={() => handleEdit(debt)}
+                                        className="p-2 text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                                    >
+                                        <Pencil size={18} />
+                                    </button>
+                                    <button
                                         onClick={() => {
                                             setSelectedDebtId(debt.id);
                                             setIsHistoryModalOpen(true);
@@ -294,12 +342,14 @@ export const Debts: React.FC = () => {
                 )}
             </div>
 
-            {/* Add Debt Modal */}
+            {/* Add/Edit Debt Modal */}
             {isModalOpen && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-end sm:items-center justify-center">
                     <div className="bg-white dark:bg-gray-900 w-full max-w-md rounded-t-3xl sm:rounded-2xl p-6 animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-10 duration-300 max-h-[90vh] overflow-y-auto">
                         <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Nueva Deuda</h2>
+                            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">
+                                {editingDebtId ? 'Editar Deuda' : 'Nueva Deuda'}
+                            </h2>
                             <button
                                 onClick={() => setIsModalOpen(false)}
                                 className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
@@ -412,7 +462,7 @@ export const Debts: React.FC = () => {
                                 type="submit"
                                 className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-4 rounded-xl shadow-lg shadow-purple-500/30 transition-all active:scale-95 mt-4"
                             >
-                                Guardar Deuda
+                                {editingDebtId ? 'Actualizar Deuda' : 'Guardar Deuda'}
                             </button>
                         </form>
                     </div>
