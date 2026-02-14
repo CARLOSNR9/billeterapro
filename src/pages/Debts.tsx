@@ -3,13 +3,16 @@ import { useFinance } from '../context/FinanceContext';
 import { Plus, X, CreditCard, Trash2, CheckCircle2 } from 'lucide-react';
 
 export const Debts: React.FC = () => {
-    const { debts, addDebt, deleteDebt, updateDebt } = useFinance();
+    const { debts, addDebt, deleteDebt, updateDebt, addTransaction, transactions } = useFinance();
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     // Payment Modal State
     const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
     const [selectedDebtId, setSelectedDebtId] = useState<string | null>(null);
     const [paymentAmount, setPaymentAmount] = useState('');
+
+    // History Modal State
+    const [isHistoryModalOpen, setIsHistoryModalOpen] = useState(false);
 
     // Form State
     const [totalAmount, setTotalAmount] = useState('');
@@ -64,7 +67,7 @@ export const Debts: React.FC = () => {
         }
     };
 
-    const handlePaymentSubmit = (e: React.FormEvent) => {
+    const handlePaymentSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedDebtId || !paymentAmount) return;
 
@@ -72,37 +75,40 @@ export const Debts: React.FC = () => {
         if (!debt) return;
 
         const amountToAdd = Number(paymentAmount);
-
         if (amountToAdd <= 0) return;
 
-        // Logic:
-        // If IS Capital Payment -> Reduce Debt (update paidAmount)
-        // If IS Interest Payment -> Just record Expense (don't update paidAmount)
+        try {
+            // 1. Record the Expense (Transaction)
+            await addTransaction({
+                amount: amountToAdd,
+                description: isPaymentCapital
+                    ? `Abono a Capital: ${debt.description}`
+                    : `Pago Intereses: ${debt.description}`,
+                date: new Date().toISOString(),
+                category: isPaymentCapital ? 'Deudas' : 'Intereses',
+                type: 'expense',
+                debtId: debt.id
+            });
 
-        // TODO: Actually record the transaction in expenses table in both cases?
-        // For now, the prompt asked to adapt the system to receive this class of debts.
-        // It didn't explicitly ask for full accounting integration, but it makes sense.
-        // Since I don't have easy access to addTransaction here without importing it from context...
-        // Wait, useFinance returns addTransaction!
+            // 2. If Capital Payment, Update Debt Balance
+            if (isPaymentCapital) {
+                const currentPaid = debt.paidAmount;
+                const remaining = debt.totalAmount - currentPaid;
+                const finalAmountToAdd = Math.min(amountToAdd, remaining);
+                await updateDebt(selectedDebtId, { paidAmount: currentPaid + finalAmountToAdd });
+                alert('Abono registrado y gasto creado correctamente.');
+            } else {
+                alert('Pago de intereses registrado como gasto. La deuda capital se mantiene igual.');
+            }
 
-        // Let's assume we just update the debt state for now as requested.
-
-        if (isPaymentCapital) {
-            const currentPaid = debt.paidAmount;
-            const remaining = debt.totalAmount - currentPaid;
-            const finalAmountToAdd = Math.min(amountToAdd, remaining);
-            updateDebt(selectedDebtId, { paidAmount: currentPaid + finalAmountToAdd });
-        } else {
-            // Interest payment - we might want to alert the user it's registered
-            // ideally we'd add an expense transaction here, but let's stick to the debt scope first
-            // or maybe just a toast?
-            alert('Pago de intereses registrado. (Nota: Esto no reduce la deuda capital)');
+            // Reset and close
+            setIsPaymentModalOpen(false);
+            setPaymentAmount('');
+            setSelectedDebtId(null);
+        } catch (error: any) {
+            console.error('Error processing payment:', error);
+            alert(`Error al procesar el pago: ${error.message}`);
         }
-
-        // Reset and close
-        setIsPaymentModalOpen(false);
-        setPaymentAmount('');
-        setSelectedDebtId(null);
     };
 
     const formatCurrency = (amount: number) => {
@@ -197,6 +203,15 @@ export const Debts: React.FC = () => {
                                     className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                                 >
                                     <Trash2 size={18} />
+                                </button>
+                                <button
+                                    onClick={() => {
+                                        setSelectedDebtId(debt.id);
+                                        setIsHistoryModalOpen(true);
+                                    }}
+                                    className="px-3 py-1.5 bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                                >
+                                    Historial
                                 </button>
                                 {debt.paidAmount < debt.totalAmount && (
                                     <button
@@ -424,6 +439,48 @@ export const Debts: React.FC = () => {
                                 Confirmar Pago
                             </button>
                         </form>
+                    </div>
+                </div>
+            )}
+
+            {/* History Modal */}
+            {isHistoryModalOpen && selectedDebtId && (
+                <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[60] flex items-end sm:items-center justify-center">
+                    <div className="bg-white dark:bg-gray-900 w-full max-w-md rounded-t-3xl sm:rounded-2xl p-6 animate-in slide-in-from-bottom-full sm:slide-in-from-bottom-10 duration-300 max-h-[90vh] overflow-y-auto">
+                        <div className="flex justify-between items-center mb-6">
+                            <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Historial de Pagos</h2>
+                            <button
+                                onClick={() => {
+                                    setIsHistoryModalOpen(false);
+                                    setSelectedDebtId(null);
+                                }}
+                                className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-full transition-colors"
+                            >
+                                <X size={24} className="text-gray-500" />
+                            </button>
+                        </div>
+
+                        <div className="space-y-4">
+                            {transactions
+                                .filter(t => t.debtId === selectedDebtId && t.type === 'expense')
+                                .length === 0 ? (
+                                <p className="text-center text-gray-500 py-4">No hay pagos registrados aún.</p>
+                            ) : (
+                                transactions
+                                    .filter(t => t.debtId === selectedDebtId && t.type === 'expense')
+                                    .map(t => (
+                                        <div key={t.id} className="flex justify-between items-center p-3 bg-gray-50 dark:bg-gray-800 rounded-lg">
+                                            <div>
+                                                <p className="font-medium text-gray-900 dark:text-gray-100">{t.description}</p>
+                                                <p className="text-xs text-gray-500">{new Date(t.date).toLocaleDateString()}</p>
+                                            </div>
+                                            <p className="font-bold text-red-500">
+                                                - {formatCurrency(t.amount)}
+                                            </p>
+                                        </div>
+                                    ))
+                            )}
+                        </div>
                     </div>
                 </div>
             )}

@@ -7,6 +7,7 @@ export interface Transaction {
     date: string; // ISO date string
     category: string;
     type: TransactionType;
+    debtId?: string;
 }
 
 export interface Debt {

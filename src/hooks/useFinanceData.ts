@@ -31,8 +31,15 @@ export const useFinanceData = () => {
 
             // Map and format if necessary (e.g. date strings are fine directly usually)
             // Map and format if necessary (e.g. date strings are fine directly usually)
-            setTransactions(transactionsData as Transaction[]);
-
+            const formattedTransactions: Transaction[] = (transactionsData || []).map((t: any) => ({
+                id: t.id,
+                amount: t.amount,
+                description: t.description,
+                date: t.date,
+                category: t.category,
+                type: t.type,
+                debtId: t.debt_id
+            }));
             const formattedDebts: Debt[] = (debtsData || []).map((d: any) => ({
                 id: d.id,
                 description: d.description,
@@ -44,6 +51,7 @@ export const useFinanceData = () => {
                 isInterestOnly: d.is_interest_only,
                 startDate: d.start_date
             }));
+            setTransactions(formattedTransactions);
             setDebts(formattedDebts);
         } catch (error) {
             console.error('Error fetching data:', error);
@@ -73,15 +81,32 @@ export const useFinanceData = () => {
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) throw new Error('Usuario no autenticado');
 
+            const payload: any = { ...transaction, user_id: user.id };
+            if (transaction.debtId) {
+                payload.debt_id = transaction.debtId;
+                delete payload.debtId; // Remove camelCase key
+            }
+
             const { data, error } = await supabase
                 .from('transactions')
-                .insert([{ ...transaction, user_id: user.id }])
+                .insert([payload])
                 .select()
                 .single();
 
             if (error) throw error;
-            setTransactions(prev => [data as Transaction, ...prev]);
-            return data as Transaction;
+
+            const newTransaction: Transaction = {
+                id: data.id,
+                amount: data.amount,
+                description: data.description,
+                date: data.date,
+                category: data.category,
+                type: data.type,
+                debtId: data.debt_id
+            };
+
+            setTransactions(prev => [newTransaction, ...prev]);
+            return newTransaction;
         } catch (error) {
             console.error('Error adding transaction:', error);
             throw error;
