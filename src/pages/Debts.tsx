@@ -67,12 +67,67 @@ export const Debts: React.FC = () => {
         }
     };
 
+    const getMonthlyInterest = (totalAmount: number, interestRate?: number) => {
+        if (!interestRate) return 0;
+        return (totalAmount * interestRate) / 100;
+    };
+
+    const getPaymentStatus = (debtId: string, startDate?: string) => {
+        const today = new Date();
+        const currentMonth = today.getMonth();
+        const currentYear = today.getFullYear();
+        const dayOfMonth = today.getDate();
+
+        // 1. Check if interest was paid this month
+        const hasPaidInterest = transactions.some(t =>
+            t.debtId === debtId &&
+            t.type === 'expense' &&
+            new Date(t.date).getMonth() === currentMonth &&
+            new Date(t.date).getFullYear() === currentYear
+        );
+
+        if (hasPaidInterest) {
+            return { status: 'Pagado', color: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' };
+        }
+
+        // 2. Determine due day (default to 1st if no startDate)
+        let dueDay = 1;
+        if (startDate) {
+            const parts = startDate.split('-');
+            if (parts.length === 3) dueDay = parseInt(parts[2]);
+        }
+
+        // 3. Check if overdue
+        if (dayOfMonth > dueDay) {
+            return { status: 'Vencido', color: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' };
+        }
+
+        return { status: 'Pendiente', color: 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' };
+    };
+
     const handlePaymentSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!selectedDebtId || !paymentAmount) return;
 
         const debt = debts.find(d => d.id === selectedDebtId);
         if (!debt) return;
+
+        // Check for double interest payment
+        if (!isPaymentCapital) {
+            const today = new Date();
+            const hasPaidInterestThisMonth = transactions.some(t =>
+                t.debtId === selectedDebtId &&
+                t.type === 'expense' &&
+                (t.description.toLowerCase().includes('interés') || t.description.toLowerCase().includes('interes')) &&
+                new Date(t.date).getMonth() === today.getMonth() &&
+                new Date(t.date).getFullYear() === today.getFullYear()
+            );
+
+            if (hasPaidInterestThisMonth) {
+                const confirm = window.confirm('⚠️ Alerta: Ya has registrado un pago de intereses para esta deuda en este mes. ¿Deseas continuar y registrar otro pago?');
+                if (!confirm) return;
+            }
+        }
 
         const amountToAdd = Number(paymentAmount);
         if (amountToAdd <= 0) return;
@@ -165,65 +220,77 @@ export const Debts: React.FC = () => {
                         </p>
                     </div>
                 ) : (
-                    debts.map((debt) => (
-                        <div key={debt.id} className="bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm relative overflow-hidden">
-                            <div className="flex justify-between items-start mb-2">
-                                <div>
-                                    <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg">{debt.description}</h3>
-                                    <p className="text-sm text-gray-500 dark:text-gray-400">Acreedor: {debt.creditor}</p>
-                                    {debt.interestRate && debt.interestRate > 0 && (
-                                        <p className="text-xs text-purple-600 font-medium mt-1">
-                                            Interés: {debt.interestRate}% {debt.isInterestOnly ? '(Solo Interés)' : ''}
-                                        </p>
+                    debts.map((debt) => {
+                        const monthlyInterest = getMonthlyInterest(debt.totalAmount, debt.interestRate);
+                        const status = getPaymentStatus(debt.id, debt.startDate);
+
+                        return (
+                            <div key={debt.id} className="bg-white dark:bg-gray-900 p-5 rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm relative overflow-hidden">
+                                <div className="flex justify-between items-start mb-2">
+                                    <div>
+                                        <div className="flex items-center gap-2 mb-1">
+                                            <h3 className="font-bold text-gray-900 dark:text-gray-100 text-lg">{debt.description}</h3>
+                                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${status.color}`}>
+                                                {status.status}
+                                            </span>
+                                        </div>
+                                        <p className="text-sm text-gray-500 dark:text-gray-400">Acreedor: {debt.creditor}</p>
+                                        {debt.interestRate && debt.interestRate > 0 && (
+                                            <div className="mt-1">
+                                                <p className="text-xs text-purple-600 font-medium">
+                                                    Interés: {debt.interestRate}% ({formatCurrency(monthlyInterest)}/mes)
+                                                </p>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="font-bold text-gray-900 dark:text-gray-100">{formatCurrency(debt.totalAmount)}</p>
+                                        <p className="text-xs text-red-500 font-medium">Restante: {formatCurrency(debt.totalAmount - debt.paidAmount)}</p>
+                                    </div>
+                                </div>
+
+                                {/* Progress Bar */}
+                                <div className="mt-4 mb-2">
+                                    <div className="flex justify-between text-xs text-gray-500 mb-1">
+                                        <span>Pagado: {formatCurrency(debt.paidAmount)}</span>
+                                        <span>{Math.round(calculateProgress(debt.paidAmount, debt.totalAmount))}%</span>
+                                    </div>
+                                    <div className="w-full h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                                        <div
+                                            className="h-full bg-purple-600 rounded-full transition-all duration-500"
+                                            style={{ width: `${calculateProgress(debt.paidAmount, debt.totalAmount)}%` }}
+                                        />
+                                    </div>
+                                </div>
+
+                                <div className="flex justify-end gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
+                                    <button
+                                        onClick={() => deleteDebt(debt.id)}
+                                        className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                                    >
+                                        <Trash2 size={18} />
+                                    </button>
+                                    <button
+                                        onClick={() => {
+                                            setSelectedDebtId(debt.id);
+                                            setIsHistoryModalOpen(true);
+                                        }}
+                                        className="px-3 py-1.5 bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                                    >
+                                        Historial
+                                    </button>
+                                    {debt.paidAmount < debt.totalAmount && (
+                                        <button
+                                            onClick={() => openPaymentModal(debt.id)}
+                                            className="px-3 py-1.5 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-lg text-sm font-medium hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors"
+                                        >
+                                            Abonar / Pagar
+                                        </button>
                                     )}
                                 </div>
-                                <div className="text-right">
-                                    <p className="font-bold text-gray-900 dark:text-gray-100">{formatCurrency(debt.totalAmount)}</p>
-                                    <p className="text-xs text-red-500 font-medium">Restante: {formatCurrency(debt.totalAmount - debt.paidAmount)}</p>
-                                </div>
                             </div>
-
-                            {/* Progress Bar */}
-                            <div className="mt-4 mb-2">
-                                <div className="flex justify-between text-xs text-gray-500 mb-1">
-                                    <span>Pagado: {formatCurrency(debt.paidAmount)}</span>
-                                    <span>{Math.round(calculateProgress(debt.paidAmount, debt.totalAmount))}%</span>
-                                </div>
-                                <div className="w-full h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
-                                    <div
-                                        className="h-full bg-purple-600 rounded-full transition-all duration-500"
-                                        style={{ width: `${calculateProgress(debt.paidAmount, debt.totalAmount)}%` }}
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="flex justify-end gap-2 mt-3 pt-3 border-t border-gray-100 dark:border-gray-800">
-                                <button
-                                    onClick={() => deleteDebt(debt.id)}
-                                    className="p-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                                >
-                                    <Trash2 size={18} />
-                                </button>
-                                <button
-                                    onClick={() => {
-                                        setSelectedDebtId(debt.id);
-                                        setIsHistoryModalOpen(true);
-                                    }}
-                                    className="px-3 py-1.5 bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 rounded-lg text-sm font-medium hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-                                >
-                                    Historial
-                                </button>
-                                {debt.paidAmount < debt.totalAmount && (
-                                    <button
-                                        onClick={() => openPaymentModal(debt.id)}
-                                        className="px-3 py-1.5 bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400 rounded-lg text-sm font-medium hover:bg-green-200 dark:hover:bg-green-900/50 transition-colors"
-                                    >
-                                        Abonar / Pagar
-                                    </button>
-                                )}
-                            </div>
-                        </div>
-                    ))
+                        );
+                    })
                 )}
             </div>
 
@@ -430,6 +497,11 @@ export const Debts: React.FC = () => {
                                         Restante Capital: {formatCurrency(debts.find(d => d.id === selectedDebtId)!.totalAmount - debts.find(d => d.id === selectedDebtId)!.paidAmount)}
                                     </p>
                                 )}
+                                {!isPaymentCapital && selectedDebtId && debts.find(d => d.id === selectedDebtId) && (
+                                    <p className="text-xs text-purple-600 mt-2 font-medium">
+                                        Interés Mensual Sugerido: {formatCurrency((debts.find(d => d.id === selectedDebtId)!.totalAmount * (debts.find(d => d.id === selectedDebtId)!.interestRate || 0)) / 100)}
+                                    </p>
+                                )}
                             </div>
 
                             <button
@@ -484,7 +556,6 @@ export const Debts: React.FC = () => {
                     </div>
                 </div>
             )}
-
         </div>
     );
 };

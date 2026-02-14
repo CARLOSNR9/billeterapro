@@ -10,6 +10,7 @@ create table if not exists public.transactions (
   date timestamptz not null,
   category text not null,
   type text not null check (type in ('income', 'expense')),
+  debt_id uuid references public.debts(id),
   created_at timestamptz default now()
 );
 
@@ -22,6 +23,9 @@ create table if not exists public.debts (
   paid_amount numeric default 0,
   due_date timestamptz,
   creditor text,
+  interest_rate numeric default 0,
+  is_interest_only boolean default false,
+  start_date timestamptz default now(),
   created_at timestamptz default now()
 );
 
