@@ -23,30 +23,35 @@ export const Debts: React.FC = () => {
     // Payment State
     const [isPaymentCapital, setIsPaymentCapital] = useState(true);
 
-    const handleSubmit = (e: React.FormEvent) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!totalAmount || !description) return;
 
-        addDebt({
-            totalAmount: Number(totalAmount),
-            paidAmount: 0,
-            description,
-            creditor: creditor || 'Banco',
-            dueDate: dueDate || undefined,
-            interestRate: interestRate ? Number(interestRate) : undefined,
-            startDate: startDate,
-            isInterestOnly: isInterestOnly
-        });
+        try {
+            await addDebt({
+                totalAmount: Number(totalAmount),
+                paidAmount: 0,
+                description,
+                creditor: creditor || 'Banco',
+                dueDate: dueDate || undefined,
+                interestRate: interestRate ? Number(interestRate) : undefined,
+                startDate: startDate,
+                isInterestOnly: isInterestOnly
+            });
 
-        // Reset form
-        setTotalAmount('');
-        setDescription('');
-        setCreditor('');
-        setDueDate('');
-        setInterestRate('');
-        setStartDate(new Date().toISOString().split('T')[0]);
-        setIsInterestOnly(false);
-        setIsModalOpen(false);
+            // Reset form
+            setTotalAmount('');
+            setDescription('');
+            setCreditor('');
+            setDueDate('');
+            setInterestRate('');
+            setStartDate(new Date().toISOString().split('T')[0]);
+            setIsInterestOnly(false);
+            setIsModalOpen(false);
+        } catch (error: any) {
+            console.error('Error creating debt:', error);
+            alert(`Error al registrar la deuda: ${error.message || 'Error desconocido'}`);
+        }
     };
 
     const openPaymentModal = (id: string) => {

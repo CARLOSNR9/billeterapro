@@ -121,7 +121,7 @@ export const useFinanceData = () => {
     const addDebt = async (debt: Omit<Debt, 'id'>) => {
         try {
             const { data: { user } } = await supabase.auth.getUser();
-            if (!user) return;
+            if (!user) throw new Error('Usuario no autenticado');
 
             const debtPayload = {
                 user_id: user.id,
@@ -155,8 +155,10 @@ export const useFinanceData = () => {
                 startDate: data.start_date
             };
             setDebts(prev => [newDebt as Debt, ...prev]);
+            return newDebt;
         } catch (error) {
             console.error('Error adding debt:', error);
+            throw error;
         }
     };
 

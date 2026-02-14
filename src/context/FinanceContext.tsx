@@ -10,7 +10,7 @@ interface FinanceContextType {
     loading: boolean;
     addTransaction: (transaction: Omit<Transaction, 'id'>) => Promise<Transaction | void>;
     deleteTransaction: (id: string) => void;
-    addDebt: (debt: Omit<Debt, 'id'>) => void;
+    addDebt: (debt: Omit<Debt, 'id'>) => Promise<Debt | void>;
     updateDebt: (id: string, updates: Partial<Debt>) => void;
     deleteDebt: (id: string) => void;
     updateTransaction: (id: string, updates: Partial<Transaction>) => void;
