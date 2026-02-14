@@ -359,7 +359,10 @@ export const Debts: React.FC = () => {
                                 <div className="flex gap-2">
                                     <button
                                         type="button"
-                                        onClick={() => setIsPaymentCapital(true)}
+                                        onClick={() => {
+                                            setIsPaymentCapital(true);
+                                            setPaymentAmount('');
+                                        }}
                                         className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${isPaymentCapital
                                             ? 'bg-purple-600 text-white shadow-md'
                                             : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
@@ -369,7 +372,16 @@ export const Debts: React.FC = () => {
                                     </button>
                                     <button
                                         type="button"
-                                        onClick={() => setIsPaymentCapital(false)}
+                                        onClick={() => {
+                                            setIsPaymentCapital(false);
+                                            const debt = debts.find(d => d.id === selectedDebtId);
+                                            if (debt && debt.interestRate) {
+                                                const interestAmount = (debt.totalAmount * debt.interestRate) / 100;
+                                                setPaymentAmount(Math.round(interestAmount).toString());
+                                            } else {
+                                                setPaymentAmount('');
+                                            }
+                                        }}
                                         className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${!isPaymentCapital
                                             ? 'bg-purple-600 text-white shadow-md'
                                             : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
