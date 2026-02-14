@@ -39,7 +39,10 @@ export const useFinanceData = () => {
                 totalAmount: d.total_amount,
                 paidAmount: d.paid_amount,
                 dueDate: d.due_date,
-                creditor: d.creditor
+                creditor: d.creditor,
+                interestRate: d.interest_rate,
+                isInterestOnly: d.is_interest_only,
+                startDate: d.start_date
             }));
             setDebts(formattedDebts);
         } catch (error) {
@@ -126,7 +129,10 @@ export const useFinanceData = () => {
                 total_amount: debt.totalAmount,
                 paid_amount: debt.paidAmount,
                 due_date: debt.dueDate,
-                creditor: debt.creditor
+                creditor: debt.creditor,
+                interest_rate: debt.interestRate,
+                is_interest_only: debt.isInterestOnly,
+                start_date: debt.startDate
             };
 
             const { data, error } = await supabase
@@ -143,7 +149,10 @@ export const useFinanceData = () => {
                 totalAmount: data.total_amount,
                 paidAmount: data.paid_amount,
                 dueDate: data.due_date,
-                creditor: data.creditor
+                creditor: data.creditor,
+                interestRate: data.interest_rate,
+                isInterestOnly: data.is_interest_only,
+                startDate: data.start_date
             };
             setDebts(prev => [newDebt as Debt, ...prev]);
         } catch (error) {
@@ -159,6 +168,9 @@ export const useFinanceData = () => {
             if (updates.paidAmount !== undefined) updatesPayload.paid_amount = updates.paidAmount;
             if (updates.dueDate !== undefined) updatesPayload.due_date = updates.dueDate;
             if (updates.creditor !== undefined) updatesPayload.creditor = updates.creditor;
+            if (updates.interestRate !== undefined) updatesPayload.interest_rate = updates.interestRate;
+            if (updates.isInterestOnly !== undefined) updatesPayload.is_interest_only = updates.isInterestOnly;
+            if (updates.startDate !== undefined) updatesPayload.start_date = updates.startDate;
 
             const { data, error } = await supabase
                 .from('debts')
@@ -175,7 +187,10 @@ export const useFinanceData = () => {
                 totalAmount: data.total_amount,
                 paidAmount: data.paid_amount,
                 dueDate: data.due_date,
-                creditor: data.creditor
+                creditor: data.creditor,
+                interestRate: data.interest_rate,
+                isInterestOnly: data.is_interest_only,
+                startDate: data.start_date
             };
             setDebts(prev => prev.map(d => d.id === id ? (updatedDebt as Debt) : d));
         } catch (error) {

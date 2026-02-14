@@ -21,9 +21,9 @@ export const Expenses: React.FC = () => {
                 type: 'expense'
             });
             setIsModalOpen(false);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error creating expense:', error);
-            alert('Error al registrar el gasto. Por favor intente de nuevo.');
+            alert(`Error al registrar el gasto: ${error.message || 'Error desconocido'}`);
         }
     };
 

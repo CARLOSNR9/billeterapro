@@ -21,9 +21,9 @@ export const Income: React.FC = () => {
                 type: 'income'
             });
             setIsModalOpen(false);
-        } catch (error) {
+        } catch (error: any) {
             console.error('Error creating income:', error);
-            alert('Error al registrar el ingreso. Por favor intente de nuevo.');
+            alert(`Error al registrar el ingreso: ${error.message || 'Error desconocido'}`);
         }
     };
 

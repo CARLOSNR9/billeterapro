@@ -16,6 +16,9 @@ export interface Debt {
     paidAmount: number;
     dueDate?: string;
     creditor?: string; // Who do I owe?
+    interestRate?: number;
+    isInterestOnly?: boolean;
+    startDate?: string;
 }
 
 export interface UserSettings {
