@@ -181,7 +181,9 @@ export const useFinanceData = () => {
                 creditor: data.creditor,
                 interestRate: data.interest_rate,
                 isInterestOnly: data.is_interest_only,
-                startDate: data.start_date
+                startDate: data.start_date,
+                totalInstallments: data.total_installments,
+                installmentAmount: data.installment_amount
             };
             setDebts(prev => [newDebt as Debt, ...prev]);
             return newDebt;
@@ -223,7 +225,9 @@ export const useFinanceData = () => {
                 creditor: data.creditor,
                 interestRate: data.interest_rate,
                 isInterestOnly: data.is_interest_only,
-                startDate: data.start_date
+                startDate: data.start_date,
+                totalInstallments: data.total_installments,
+                installmentAmount: data.installment_amount
             };
             setDebts(prev => prev.map(d => d.id === id ? (updatedDebt as Debt) : d));
         } catch (error) {
