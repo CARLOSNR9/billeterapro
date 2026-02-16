@@ -4,7 +4,7 @@ import { Plus, X, CreditCard, Trash2, CheckCircle2, Pencil } from 'lucide-react'
 import type { Debt } from '../types';
 
 export const Debts: React.FC = () => {
-    const { debts, addDebt, deleteDebt, updateDebt, addTransaction, transactions } = useFinance();
+    const { debts, deleteDebt, updateDebt, addTransaction, transactions } = useFinance();
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     // Edit State
@@ -49,7 +49,6 @@ export const Debts: React.FC = () => {
                     creditor: creditor || 'Banco',
                     dueDate: dueDate || undefined,
                     interestRate: interestRate ? Number(interestRate) : undefined,
-                    startDate: startDate,
                     startDate: startDate,
                     isInterestOnly: isInterestOnly,
                     totalInstallments: isAmortized ? Number(totalInstallments) : undefined,
