@@ -25,6 +25,8 @@ create table if not exists public.debts (
   creditor text,
   interest_rate numeric default 0,
   is_interest_only boolean default false,
+  total_installments integer,
+  installment_amount numeric,
   start_date timestamptz default now(),
   created_at timestamptz default now()
 );

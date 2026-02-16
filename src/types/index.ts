@@ -19,6 +19,8 @@ export interface Debt {
     creditor?: string; // Who do I owe?
     interestRate?: number;
     isInterestOnly?: boolean;
+    totalInstallments?: number;
+    installmentAmount?: number;
     startDate?: string;
 }
 

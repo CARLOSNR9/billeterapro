@@ -49,6 +49,8 @@ export const useFinanceData = () => {
                 creditor: d.creditor,
                 interestRate: d.interest_rate,
                 isInterestOnly: d.is_interest_only,
+                totalInstallments: d.total_installments,
+                installmentAmount: d.installment_amount,
                 startDate: d.start_date
             }));
             setTransactions(formattedTransactions);
@@ -157,6 +159,8 @@ export const useFinanceData = () => {
                 creditor: debt.creditor,
                 interest_rate: debt.interestRate,
                 is_interest_only: debt.isInterestOnly,
+                total_installments: debt.totalInstallments,
+                installment_amount: debt.installmentAmount,
                 start_date: debt.startDate
             };
 
@@ -197,6 +201,8 @@ export const useFinanceData = () => {
             if (updates.creditor !== undefined) updatesPayload.creditor = updates.creditor;
             if (updates.interestRate !== undefined) updatesPayload.interest_rate = updates.interestRate;
             if (updates.isInterestOnly !== undefined) updatesPayload.is_interest_only = updates.isInterestOnly;
+            if (updates.totalInstallments !== undefined) updatesPayload.total_installments = updates.totalInstallments;
+            if (updates.installmentAmount !== undefined) updatesPayload.installment_amount = updates.installmentAmount;
             if (updates.startDate !== undefined) updatesPayload.start_date = updates.startDate;
 
             const { data, error } = await supabase

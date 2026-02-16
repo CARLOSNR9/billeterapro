@@ -29,6 +29,12 @@ export const Debts: React.FC = () => {
 
     // Payment State
     const [isPaymentCapital, setIsPaymentCapital] = useState(true);
+    const [isPaymentAmortized, setIsPaymentAmortized] = useState(false); // New state for amortized payment type
+
+    // Amortization Form State
+    const [totalInstallments, setTotalInstallments] = useState('');
+    const [installmentAmount, setInstallmentAmount] = useState('');
+    const [isAmortized, setIsAmortized] = useState(false);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -44,20 +50,10 @@ export const Debts: React.FC = () => {
                     dueDate: dueDate || undefined,
                     interestRate: interestRate ? Number(interestRate) : undefined,
                     startDate: startDate,
-                    isInterestOnly: isInterestOnly
-                });
-                alert('Deuda actualizada correctamente.');
-            } else {
-                // Create new debt
-                await addDebt({
-                    totalAmount: Number(totalAmount),
-                    paidAmount: 0,
-                    description,
-                    creditor: creditor || 'Banco',
-                    dueDate: dueDate || undefined,
-                    interestRate: interestRate ? Number(interestRate) : undefined,
                     startDate: startDate,
-                    isInterestOnly: isInterestOnly
+                    isInterestOnly: isInterestOnly,
+                    totalInstallments: isAmortized ? Number(totalInstallments) : undefined,
+                    installmentAmount: isAmortized ? Number(installmentAmount) : undefined
                 });
             }
 
@@ -70,6 +66,9 @@ export const Debts: React.FC = () => {
             setInterestRate('');
             setStartDate(new Date().toISOString().split('T')[0]);
             setIsInterestOnly(false);
+            setIsAmortized(false);
+            setTotalInstallments('');
+            setInstallmentAmount('');
             setIsModalOpen(false);
         } catch (error: any) {
             console.error('Error saving debt:', error);
@@ -86,6 +85,9 @@ export const Debts: React.FC = () => {
         setInterestRate(debt.interestRate ? debt.interestRate.toString() : '');
         setStartDate(debt.startDate || new Date().toISOString().split('T')[0]);
         setIsInterestOnly(debt.isInterestOnly || false);
+        setIsAmortized(!!debt.totalInstallments);
+        setTotalInstallments(debt.totalInstallments ? debt.totalInstallments.toString() : '');
+        setInstallmentAmount(debt.installmentAmount ? debt.installmentAmount.toString() : '');
         setIsModalOpen(true);
     };
 
@@ -94,7 +96,12 @@ export const Debts: React.FC = () => {
         if (debt) {
             setSelectedDebtId(id);
             setPaymentAmount('');
+            setPaymentAmount('');
             setIsPaymentCapital(true); // Default to capital payment
+            setIsPaymentAmortized(!!debt.installmentAmount); // Default to amortized payment if available
+            if (debt.installmentAmount) {
+                setPaymentAmount(debt.installmentAmount.toString());
+            }
             setIsPaymentModalOpen(true);
         }
     };
@@ -145,7 +152,7 @@ export const Debts: React.FC = () => {
         if (!debt) return;
 
         // Check for double interest payment
-        if (!isPaymentCapital) {
+        if (!isPaymentCapital && !isPaymentAmortized) {
             const today = new Date();
             const hasPaidInterestThisMonth = transactions.some(t =>
                 t.debtId === selectedDebtId &&
@@ -165,27 +172,56 @@ export const Debts: React.FC = () => {
         if (amountToAdd <= 0) return;
 
         try {
-            // 1. Record the Expense (Transaction)
-            await addTransaction({
-                amount: amountToAdd,
-                description: isPaymentCapital
-                    ? `Abono a Capital: ${debt.description}`
-                    : `Pago Intereses: ${debt.description}`,
-                date: new Date().toISOString(),
-                category: isPaymentCapital ? 'Deudas' : 'Intereses',
-                type: 'expense',
-                debtId: debt.id
-            });
+            // Logic for Amortized Payment (Fixed Installment)
+            if (isPaymentAmortized && debt.installmentAmount && debt.interestRate) {
+                const interestPortion = Math.round((debt.totalAmount - debt.paidAmount) * (debt.interestRate / 100));
+                const capitalPortion = Number(paymentAmount) - interestPortion;
 
-            // 2. If Capital Payment, Update Debt Balance
-            if (isPaymentCapital) {
+                if (capitalPortion <= 0) {
+                    alert('El monto del pago no cubre los intereses generados. Aumenta el monto.');
+                    return;
+                }
+
+                // 1. Record Transaction (Split or Single?) - Let's do single transaction as "Pago Cuota" but description details it
+                await addTransaction({
+                    amount: Number(paymentAmount),
+                    description: `Pago Cuota ${debt.description} (Int: ${formatCurrency(interestPortion)}, Cap: ${formatCurrency(capitalPortion)})`,
+                    date: new Date().toISOString(),
+                    category: 'Deudas',
+                    type: 'expense',
+                    debtId: debt.id
+                });
+
+                // 2. Update Debt (Paid Amount increases ONLY by Capital Portion)
                 const currentPaid = debt.paidAmount;
-                const remaining = debt.totalAmount - currentPaid;
-                const finalAmountToAdd = Math.min(amountToAdd, remaining);
-                await updateDebt(selectedDebtId, { paidAmount: currentPaid + finalAmountToAdd });
-                alert('Abono registrado y gasto creado correctamente.');
-            } else {
-                alert('Pago de intereses registrado como gasto. La deuda capital se mantiene igual.');
+                const finalPaid = currentPaid + capitalPortion;
+                await updateDebt(selectedDebtId, { paidAmount: finalPaid });
+                alert(`Cuota registrada. Abono a capital: ${formatCurrency(capitalPortion)}. Interés pagado: ${formatCurrency(interestPortion)}.`);
+            }
+            else {
+                // Existing Logic (Original Capital or Interest Only)
+                // 1. Record the Expense (Transaction)
+                await addTransaction({
+                    amount: amountToAdd,
+                    description: isPaymentCapital
+                        ? `Abono a Capital: ${debt.description}`
+                        : `Pago Intereses: ${debt.description}`,
+                    date: new Date().toISOString(),
+                    category: isPaymentCapital ? 'Deudas' : 'Intereses',
+                    type: 'expense',
+                    debtId: debt.id
+                });
+
+                // 2. If Capital Payment, Update Debt Balance
+                if (isPaymentCapital) {
+                    const currentPaid = debt.paidAmount;
+                    const remaining = debt.totalAmount - currentPaid;
+                    const finalAmountToAdd = Math.min(amountToAdd, remaining);
+                    await updateDebt(selectedDebtId, { paidAmount: currentPaid + finalAmountToAdd });
+                    alert('Abono registrado y gasto creado correctamente.');
+                } else {
+                    alert('Pago de intereses registrado como gasto. La deuda capital se mantiene igual.');
+                }
             }
 
             // Reset and close
@@ -227,6 +263,9 @@ export const Debts: React.FC = () => {
                         setInterestRate('');
                         setStartDate(new Date().toISOString().split('T')[0]);
                         setIsInterestOnly(false);
+                        setIsAmortized(false);
+                        setTotalInstallments('');
+                        setInstallmentAmount('');
                         setIsModalOpen(true);
                     }}
                     className="w-10 h-10 rounded-full bg-purple-600 text-white flex items-center justify-center shadow-lg shadow-purple-500/30 hover:bg-purple-700 transition-colors"
@@ -277,6 +316,11 @@ export const Debts: React.FC = () => {
                                             </span>
                                         </div>
                                         <p className="text-sm text-gray-500 dark:text-gray-400">Acreedor: {debt.creditor}</p>
+                                        {debt.installmentAmount && (
+                                            <p className="text-xs text-blue-600 font-medium mt-0.5">
+                                                Cuota Fija: {formatCurrency(debt.installmentAmount)} / mes
+                                            </p>
+                                        )}
                                         {debt.interestRate && debt.interestRate > 0 && (
                                             <div className="mt-1">
                                                 <p className="text-xs text-purple-600 font-medium">
@@ -445,6 +489,48 @@ export const Debts: React.FC = () => {
                                 </label>
                             </div>
 
+                            <div className="flex items-center gap-2 mt-4">
+                                <input
+                                    type="checkbox"
+                                    id="isAmortized"
+                                    checked={isAmortized}
+                                    onChange={(e) => setIsAmortized(e.target.checked)}
+                                    className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500 border-gray-300"
+                                />
+                                <label htmlFor="isAmortized" className="text-sm text-gray-700 dark:text-gray-300">
+                                    Es un préstamo con cuota fija (Amortización)
+                                </label>
+                            </div>
+
+                            {isAmortized && (
+                                <div className="grid grid-cols-2 gap-4 mt-2 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                            Valor Cuota
+                                        </label>
+                                        <input
+                                            type="number"
+                                            value={installmentAmount}
+                                            onChange={(e) => setInstallmentAmount(e.target.value)}
+                                            className="block w-full px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 outline-none"
+                                            placeholder="0"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                            # Cuotas
+                                        </label>
+                                        <input
+                                            type="number"
+                                            value={totalInstallments}
+                                            onChange={(e) => setTotalInstallments(e.target.value)}
+                                            className="block w-full px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 outline-none"
+                                            placeholder="Ej: 36"
+                                        />
+                                    </div>
+                                </div>
+                            )}
+
                             <div>
                                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                                     Fecha límite (Opcional)
@@ -505,6 +591,7 @@ export const Debts: React.FC = () => {
                                     <button
                                         type="button"
                                         onClick={() => {
+                                            setIsPaymentAmortized(false);
                                             setIsPaymentCapital(false);
                                             const debt = debts.find(d => d.id === selectedDebtId);
                                             if (debt && debt.interestRate) {
@@ -514,7 +601,7 @@ export const Debts: React.FC = () => {
                                                 setPaymentAmount('');
                                             }
                                         }}
-                                        className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${!isPaymentCapital
+                                        className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${!isPaymentCapital && !isPaymentAmortized
                                             ? 'bg-purple-600 text-white shadow-md'
                                             : 'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400'
                                             }`}
@@ -522,6 +609,26 @@ export const Debts: React.FC = () => {
                                         Pago Intereses
                                     </button>
                                 </div>
+
+                                {selectedDebtId && debts.find(d => d.id === selectedDebtId)?.installmentAmount && (
+                                    <button
+                                        type="button"
+                                        onClick={() => {
+                                            setIsPaymentAmortized(true);
+                                            setIsPaymentCapital(false); // Can be false as it's a mix
+                                            const debt = debts.find(d => d.id === selectedDebtId);
+                                            if (debt && debt.installmentAmount) {
+                                                setPaymentAmount(debt.installmentAmount.toString());
+                                            }
+                                        }}
+                                        className={`w-full mt-2 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${isPaymentAmortized
+                                            ? 'bg-blue-600 text-white shadow-md'
+                                            : 'bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400'
+                                            }`}
+                                    >
+                                        Pagar Cuota Fija (Amortización)
+                                    </button>
+                                )}
                             </div>
 
                             <div>
