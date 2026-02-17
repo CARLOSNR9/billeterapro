@@ -237,15 +237,30 @@ export const useFinanceData = () => {
 
     const deleteDebt = async (id: string) => {
         try {
+            // First, delete associated transactions to avoid FK constraints
+            const { error: transactionsError } = await supabase
+                .from('transactions')
+                .delete()
+                .eq('debt_id', id); // Use snake_case column name
+
+            if (transactionsError) throw transactionsError;
+
+            // Then delete the debt
             const { error } = await supabase
                 .from('debts')
                 .delete()
                 .eq('id', id);
 
             if (error) throw error;
+
+            // Update local state
             setDebts(prev => prev.filter(d => d.id !== id));
+            // Also remove deleted transactions from local state
+            setTransactions(prev => prev.filter(t => t.debtId !== id));
+
         } catch (error) {
             console.error('Error deleting debt:', error);
+            alert('Error al eliminar la deuda. Verifica si tienes transacciones asociadas.');
         }
     };
 
