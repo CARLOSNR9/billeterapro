@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useFinance } from '../context/FinanceContext';
-import { Plus, X, CreditCard, Trash2, CheckCircle2, Pencil } from 'lucide-react';
+import { Plus, X, CreditCard, Trash2, CheckCircle2, Pencil, Calculator } from 'lucide-react';
 import type { Debt } from '../types';
+import { calculateInterestRate } from '../utils/financeCalculators';
 
 export const Debts: React.FC = () => {
     const { debts, addDebt, deleteDebt, updateDebt, addTransaction, transactions } = useFinance();
@@ -35,6 +36,30 @@ export const Debts: React.FC = () => {
     const [totalInstallments, setTotalInstallments] = useState('');
     const [installmentAmount, setInstallmentAmount] = useState('');
     const [isAmortized, setIsAmortized] = useState(false);
+    const [calculatedRate, setCalculatedRate] = useState<number | null>(null);
+
+    // Auto-calculate interest rate when amortization fields change
+    useEffect(() => {
+        if (isAmortized && totalAmount && totalInstallments && installmentAmount) {
+            const P = parseFloat(totalAmount);
+            const N = parseFloat(totalInstallments);
+            const A = parseFloat(installmentAmount);
+
+            if (P > 0 && N > 0 && A > 0) {
+                const rate = calculateInterestRate(P, N, A);
+                if (rate !== null && !isNaN(rate)) {
+                    setCalculatedRate(rate);
+                    // Optional: Auto-fill the interest rate field if it's empty? 
+                    // Let's just suggest it or show it.
+                    // Actually, for better UX, let's update the state if it's significantly different 
+                    // or if the user hasn't manually typed a rate yet?
+                    // For now, let's just show it in the UI and let a button fill it.
+                }
+            }
+        } else {
+            setCalculatedRate(null);
+        }
+    }, [isAmortized, totalAmount, totalInstallments, installmentAmount]);
 
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -516,31 +541,53 @@ export const Debts: React.FC = () => {
                             </div>
 
                             {isAmortized && (
-                                <div className="grid grid-cols-2 gap-4 mt-2 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                            Valor Cuota
-                                        </label>
-                                        <input
-                                            type="number"
-                                            value={installmentAmount}
-                                            onChange={(e) => setInstallmentAmount(e.target.value)}
-                                            className="block w-full px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 outline-none"
-                                            placeholder="0"
-                                        />
+                                <div className="space-y-4 mt-2 p-4 bg-gray-50 dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700">
+                                    <div className="grid grid-cols-2 gap-4">
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                Valor Cuota
+                                            </label>
+                                            <input
+                                                type="number"
+                                                value={installmentAmount}
+                                                onChange={(e) => setInstallmentAmount(e.target.value)}
+                                                className="block w-full px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 outline-none"
+                                                placeholder="0"
+                                            />
+                                        </div>
+                                        <div>
+                                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                                # Cuotas
+                                            </label>
+                                            <input
+                                                type="number"
+                                                value={totalInstallments}
+                                                onChange={(e) => setTotalInstallments(e.target.value)}
+                                                className="block w-full px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 outline-none"
+                                                placeholder="Ej: 36"
+                                            />
+                                        </div>
                                     </div>
-                                    <div>
-                                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                            # Cuotas
-                                        </label>
-                                        <input
-                                            type="number"
-                                            value={totalInstallments}
-                                            onChange={(e) => setTotalInstallments(e.target.value)}
-                                            className="block w-full px-4 py-2 border border-gray-200 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-purple-500 outline-none"
-                                            placeholder="Ej: 36"
-                                        />
-                                    </div>
+                                    {calculatedRate !== null && (
+                                        <div className="flex items-center justify-between bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+                                            <div>
+                                                <p className="text-xs text-blue-700 dark:text-blue-300 font-medium">
+                                                    Tasa sugerida basada en la cuota:
+                                                </p>
+                                                <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                                                    {calculatedRate.toFixed(2)}% M.V.
+                                                </p>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setInterestRate(calculatedRate.toFixed(2))}
+                                                className="flex items-center gap-1 px-3 py-1.5 bg-blue-100 hover:bg-blue-200 dark:bg-blue-800 dark:hover:bg-blue-700 text-blue-700 dark:text-blue-200 text-xs font-bold rounded-lg transition-colors"
+                                            >
+                                                <Calculator size={14} />
+                                                Aplicar Tasa
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                             )}
 
