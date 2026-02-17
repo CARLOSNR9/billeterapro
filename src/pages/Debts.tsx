@@ -115,6 +115,24 @@ export const Debts: React.FC = () => {
                     totalInstallments: isAmortized ? Number(totalInstallments) : undefined,
                     installmentAmount: isAmortized ? Number(installmentAmount) : undefined
                 });
+
+                // Handle Legacy Import for EXISTING debts (if user adds it during edit)
+                const effectiveRate = interestRate ? Number(interestRate) : calculatedRate;
+                if (isAmortized && paidInstallments && Number(paidInstallments) > 0 && effectiveRate) {
+                    const confirmImport = window.confirm(`¿Estás seguro de importar ${paidInstallments} cuotas pasadas? Esto creará transacciones y actualizará el saldo.`);
+                    if (confirmImport) {
+                        await importLegacyPayments(
+                            editingDebtId,
+                            startDate,
+                            Number(paidInstallments),
+                            Number(totalAmount),
+                            Number(totalInstallments),
+                            Number(installmentAmount),
+                            effectiveRate
+                        );
+                        alert('Historial importado y deuda actualizada correctamente.');
+                    }
+                }
             } else {
                 // Create new debt
                 const newDebt = await addDebt({
@@ -131,15 +149,19 @@ export const Debts: React.FC = () => {
                 });
 
                 // Handle Legacy Import (Retroactive Payments)
-                if (isAmortized && paidInstallments && Number(paidInstallments) > 0 && calculatedRate) {
+                // Handle Legacy Import (Retroactive Payments) for NEW debts
+                // Use entered interest rate if available, otherwise calculated rate
+                const effectiveRate = interestRate ? Number(interestRate) : calculatedRate;
+
+                if (isAmortized && paidInstallments && Number(paidInstallments) > 0 && effectiveRate) {
                     await importLegacyPayments(
-                        newDebt.id, // Ensure addDebt returns the object with ID
+                        newDebt.id,
                         startDate,
                         Number(paidInstallments),
                         Number(totalAmount),
                         Number(totalInstallments),
                         Number(installmentAmount),
-                        calculatedRate
+                        effectiveRate
                     );
                 }
             }
@@ -618,8 +640,9 @@ export const Debts: React.FC = () => {
                                             />
                                         </div>
                                     </div>
-                                    {calculatedRate !== null && (
-                                        <div className="space-y-3">
+                                    {/* ALWAYS show import field if amortized, not just when calculatedRate exists */}
+                                    <div className="space-y-3">
+                                        {calculatedRate !== null && (
                                             <div className="flex items-center justify-between bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
                                                 <div>
                                                     <p className="text-xs text-blue-700 dark:text-blue-300 font-medium">
@@ -638,28 +661,28 @@ export const Debts: React.FC = () => {
                                                     Aplicar Tasa
                                                 </button>
                                             </div>
+                                        )}
 
-                                            <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-100 dark:border-green-800">
-                                                <label className="block text-sm font-medium text-green-800 dark:text-green-300 mb-1">
-                                                    ¿Importar historial? (Cuotas ya pagadas)
-                                                </label>
-                                                <div className="flex items-center gap-2">
-                                                    <input
-                                                        type="number"
-                                                        value={paidInstallments}
-                                                        onChange={(e) => setPaidInstallments(e.target.value)}
-                                                        className="block w-24 px-3 py-1.5 border border-green-200 dark:border-green-700 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm focus:ring-1 focus:ring-green-500 outline-none"
-                                                        placeholder="0"
-                                                        min="0"
-                                                        max={totalInstallments}
-                                                    />
-                                                    <span className="text-xs text-green-700 dark:text-green-400">
-                                                        Se crearán automáticamente las transacciones pasadas.
-                                                    </span>
-                                                </div>
+                                        <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-100 dark:border-green-800">
+                                            <label className="block text-sm font-medium text-green-800 dark:text-green-300 mb-1">
+                                                ¿Importar historial? (Cuotas ya pagadas)
+                                            </label>
+                                            <div className="flex items-center gap-2">
+                                                <input
+                                                    type="number"
+                                                    value={paidInstallments}
+                                                    onChange={(e) => setPaidInstallments(e.target.value)}
+                                                    className="block w-24 px-3 py-1.5 border border-green-200 dark:border-green-700 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm focus:ring-1 focus:ring-green-500 outline-none"
+                                                    placeholder="0"
+                                                    min="0"
+                                                    max={totalInstallments}
+                                                />
+                                                <span className="text-xs text-green-700 dark:text-green-400">
+                                                    Se crearán transacciones pasadas.
+                                                </span>
                                             </div>
                                         </div>
-                                    )}
+                                    </div>
                                 </div>
                             )}
 
