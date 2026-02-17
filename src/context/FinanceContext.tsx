@@ -8,16 +8,28 @@ interface FinanceContextType {
     debts: Debt[];
     user: User | null;
     loading: boolean;
-    addTransaction: (transaction: Omit<Transaction, 'id'>) => Promise<Transaction | void>;
+    addTransaction: (transaction: Omit<Transaction, 'id'>) => Promise<Transaction>;
     deleteTransaction: (id: string) => void;
-    addDebt: (debt: Omit<Debt, 'id'>) => Promise<Debt | void>;
+    addDebt: (debt: Omit<Debt, 'id'>) => Promise<Debt>;
     updateDebt: (id: string, updates: Partial<Debt>) => void;
     deleteDebt: (id: string) => void;
     updateTransaction: (id: string, updates: Partial<Transaction>) => void;
     getBalance: () => number;
 }
 
-const FinanceContext = createContext<FinanceContextType | undefined>(undefined);
+const FinanceContext = createContext<FinanceContextType>({
+    transactions: [],
+    debts: [],
+    user: null,
+    loading: true,
+    addTransaction: async () => { throw new Error('addTransaction not implemented'); },
+    deleteTransaction: () => { },
+    addDebt: async () => { throw new Error('addDebt not implemented'); },
+    updateDebt: () => { },
+    deleteDebt: () => { },
+    updateTransaction: () => { },
+    getBalance: () => 0
+});
 
 export const FinanceProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
     const financeData = useFinanceData();
