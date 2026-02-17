@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useFinance } from '../context/FinanceContext';
 import { Plus, X, CreditCard, Trash2, CheckCircle2, Pencil, Calculator } from 'lucide-react';
 import type { Debt } from '../types';
-import { calculateInterestRate } from '../utils/financeCalculators';
+import { calculateInterestRate, calculateAmortizationSchedule } from '../utils/financeCalculators';
 
 export const Debts: React.FC = () => {
     const { debts, addDebt, deleteDebt, updateDebt, addTransaction, transactions } = useFinance();
@@ -37,6 +37,7 @@ export const Debts: React.FC = () => {
     const [installmentAmount, setInstallmentAmount] = useState('');
     const [isAmortized, setIsAmortized] = useState(false);
     const [calculatedRate, setCalculatedRate] = useState<number | null>(null);
+    const [paidInstallments, setPaidInstallments] = useState('');
 
     // Auto-calculate interest rate when amortization fields change
     useEffect(() => {
@@ -61,6 +62,41 @@ export const Debts: React.FC = () => {
         }
     }, [isAmortized, totalAmount, totalInstallments, installmentAmount]);
 
+    // Helper to generate retroactive transactions
+    const importLegacyPayments = async (debtId: string, startDate: string, numPaid: number, principal: number, totalInst: number, instAmount: number, rate: number) => {
+        const schedule = calculateAmortizationSchedule(principal, totalInst, instAmount, rate);
+
+        let totalCapitalPaid = 0;
+        const startDateObj = new Date(startDate); // Ensure valid date format
+
+        // Process each past payment
+        for (let i = 0; i < numPaid && i < schedule.length; i++) {
+            const item = schedule[i];
+            // Calculate approximate date: Month by month from start date
+            const paymentDate = new Date(startDateObj);
+            paymentDate.setMonth(startDateObj.getMonth() + (i + 1));
+
+            // Create Transaction for each past payment
+            await addTransaction({
+                amount: instAmount,
+                description: `Pago Cuota #${i + 1} (Importado)`,
+                date: paymentDate.toISOString(),
+                category: 'Deuda',
+                type: 'expense',
+                debtId: debtId
+            });
+
+            totalCapitalPaid += item.capital;
+        }
+
+        // Update Debt Paid Amount to reflect the capital paid so far
+        if (totalCapitalPaid > 0) {
+            await updateDebt(debtId, {
+                paidAmount: totalCapitalPaid
+            });
+        }
+    };
+
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!totalAmount || !description) return;
@@ -81,7 +117,7 @@ export const Debts: React.FC = () => {
                 });
             } else {
                 // Create new debt
-                await addDebt({
+                const newDebt = await addDebt({
                     totalAmount: Number(totalAmount),
                     description,
                     paidAmount: 0,
@@ -93,6 +129,19 @@ export const Debts: React.FC = () => {
                     totalInstallments: isAmortized ? Number(totalInstallments) : undefined,
                     installmentAmount: isAmortized ? Number(installmentAmount) : undefined
                 });
+
+                // Handle Legacy Import (Retroactive Payments)
+                if (isAmortized && paidInstallments && Number(paidInstallments) > 0 && calculatedRate) {
+                    await importLegacyPayments(
+                        newDebt.id, // Ensure addDebt returns the object with ID
+                        startDate,
+                        Number(paidInstallments),
+                        Number(totalAmount),
+                        Number(totalInstallments),
+                        Number(installmentAmount),
+                        calculatedRate
+                    );
+                }
             }
 
             // Reset form
@@ -107,6 +156,7 @@ export const Debts: React.FC = () => {
             setIsAmortized(false);
             setTotalInstallments('');
             setInstallmentAmount('');
+            setPaidInstallments('');
             setIsModalOpen(false);
         } catch (error: any) {
             console.error('Error saving debt:', error);
