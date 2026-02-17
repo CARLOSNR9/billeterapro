@@ -34,3 +34,33 @@ export const calculateInterestRate = (principal: number, installments: number, i
 
     return r * 100;
 };
+
+export const calculateAmortizationSchedule = (
+    principal: number,
+    installments: number,
+    installmentAmount: number,
+    rate: number // Monthly rate in percentage (e.g. 3.7)
+): { interest: number; capital: number; balance: number }[] => {
+    let balance = principal;
+    const monthlyRate = rate / 100;
+    const schedule = [];
+
+    for (let i = 0; i < installments; i++) {
+        const interest = balance * monthlyRate;
+        const capital = installmentAmount - interest;
+        balance -= capital;
+
+        // Prevent negative balance due to rounding
+        if (balance < 0) balance = 0;
+
+        schedule.push({
+            interest,
+            capital,
+            balance
+        });
+
+        if (balance === 0) break;
+    }
+
+    return schedule;
+};

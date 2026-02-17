@@ -569,23 +569,45 @@ export const Debts: React.FC = () => {
                                         </div>
                                     </div>
                                     {calculatedRate !== null && (
-                                        <div className="flex items-center justify-between bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
-                                            <div>
-                                                <p className="text-xs text-blue-700 dark:text-blue-300 font-medium">
-                                                    Tasa sugerida basada en la cuota:
-                                                </p>
-                                                <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
-                                                    {calculatedRate.toFixed(2)}% M.V.
-                                                </p>
+                                        <div className="space-y-3">
+                                            <div className="flex items-center justify-between bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg">
+                                                <div>
+                                                    <p className="text-xs text-blue-700 dark:text-blue-300 font-medium">
+                                                        Tasa sugerida basada en la cuota:
+                                                    </p>
+                                                    <p className="text-lg font-bold text-blue-600 dark:text-blue-400">
+                                                        {calculatedRate.toFixed(2)}% M.V.
+                                                    </p>
+                                                </div>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => setInterestRate(calculatedRate.toFixed(2))}
+                                                    className="flex items-center gap-1 px-3 py-1.5 bg-blue-100 hover:bg-blue-200 dark:bg-blue-800 dark:hover:bg-blue-700 text-blue-700 dark:text-blue-200 text-xs font-bold rounded-lg transition-colors"
+                                                >
+                                                    <Calculator size={14} />
+                                                    Aplicar Tasa
+                                                </button>
                                             </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => setInterestRate(calculatedRate.toFixed(2))}
-                                                className="flex items-center gap-1 px-3 py-1.5 bg-blue-100 hover:bg-blue-200 dark:bg-blue-800 dark:hover:bg-blue-700 text-blue-700 dark:text-blue-200 text-xs font-bold rounded-lg transition-colors"
-                                            >
-                                                <Calculator size={14} />
-                                                Aplicar Tasa
-                                            </button>
+
+                                            <div className="p-3 bg-green-50 dark:bg-green-900/20 rounded-lg border border-green-100 dark:border-green-800">
+                                                <label className="block text-sm font-medium text-green-800 dark:text-green-300 mb-1">
+                                                    ¿Importar historial? (Cuotas ya pagadas)
+                                                </label>
+                                                <div className="flex items-center gap-2">
+                                                    <input
+                                                        type="number"
+                                                        value={paidInstallments}
+                                                        onChange={(e) => setPaidInstallments(e.target.value)}
+                                                        className="block w-24 px-3 py-1.5 border border-green-200 dark:border-green-700 rounded bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100 text-sm focus:ring-1 focus:ring-green-500 outline-none"
+                                                        placeholder="0"
+                                                        min="0"
+                                                        max={totalInstallments}
+                                                    />
+                                                    <span className="text-xs text-green-700 dark:text-green-400">
+                                                        Se crearán automáticamente las transacciones pasadas.
+                                                    </span>
+                                                </div>
+                                            </div>
                                         </div>
                                     )}
                                 </div>
